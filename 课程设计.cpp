@@ -1,14 +1,15 @@
-#include<iostream>
-#include<string>
-#include<list>
-#include<iomanip>
+#include <iostream>
+#include <string>
+#include <list>
+#include <iomanip>
 #include <cstdlib>
-#include<fstream>
-#include<sys/stat.h>
-#include<sys/types.h>
-#include<fcntl.h>
-#include<cstdio>
-#include<unistd.h>
+#include <fstream>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <cstdio>
+#include <unistd.h>
+#include <direct.h>
 using namespace std;
 
 typedef uint64_t hash_t;
@@ -59,7 +60,7 @@ public:
 
 		return size;
 	};
-	string printtype()
+	string print_type()
 	{
 		string a;
 		if (type[0])
@@ -127,17 +128,18 @@ void help()
 
 
 //扫描输入的文件是否在当前目录中
-bool existrecentFolder(string filename)
+bool existRecentFolder(string filename)
 {
 	for (auto i = recent_ptr->children.begin(); i != recent_ptr->children.end(); i++)
 		if ((*i).name == filename)
 			return true;
 	return false;
 }
+
 //打开文件
 void open(string namein)
 {
-	if (existrecentFolder(namein))
+	if (existRecentFolder(namein))
 	{
 		for (auto i = recent_ptr->children.begin(); i != recent_ptr->children.end(); i++)
 			if ((*i).name == namein && (*i).filetype == 1) //类型判断
@@ -152,12 +154,15 @@ void open(string namein)
 			}
 	}
 	else
+	{
 		cout << "未找到文件" ;
+	}
 }
+
 //读文件
 void read(string namein)
 {
-	if (existrecentFolder(namein))
+	if (existRecentFolder(namein))
 	{
 		for (auto i = recent_ptr->children.begin(); i != recent_ptr->children.end(); i++)
 		{
@@ -188,10 +193,11 @@ void read(string namein)
 		cout << "未找到文件";
 	}
 }
+
 //写文件
 void write(string namein)
 {
-	if (existrecentFolder(namein))
+	if (existRecentFolder(namein))
 	{
 		for (auto i = recent_ptr->children.begin(); i != recent_ptr->children.end(); i++)
 		{
@@ -219,31 +225,31 @@ void write(string namein)
 	else
 		cout << "未找到文件" ;
 }
+
 //新建文件
 void creatFile(string name)
 {
 	fileNode IN;
-		if (!existrecentFolder(name))
-		{
-			IN.father = recent_ptr;
-			IN.name = name;
-			IN.src = recent_ptr->src + "/" + name;
-			IN.grade = recent_grade + 1;
-			IN.filetype = 1;
-			IN.type[0] = true;
-			IN.type[1] = true;
-			IN.type[2] = true;
-			recent_ptr->children.push_back(IN);
-			string command = "touch " + name;
-			system(command.data());
-			cout << "创建成功！";
-		}
-		else
-		{
-			cout << "命名冲突" ;
-		}
-
+	if (!existRecentFolder(name))
+	{
+		IN.father = recent_ptr;
+		IN.name = name;
+		IN.src = recent_ptr->src + "/" + name;
+		IN.grade = recent_grade + 1;
+		IN.filetype = 1;
+		IN.type[0] = true;
+		IN.type[1] = true;
+		IN.type[2] = true;
+		recent_ptr->children.push_back(IN);
+		ofstream filestream(name.data());
+		filestream.close();
+		cout << "创建成功！";
 	}
+	else
+	{
+		cout << "命名冲突" ;
+	}
+}
 
 //新建文件夹
 void creatFolder(string name)
@@ -251,7 +257,7 @@ void creatFolder(string name)
 
 	fileNode IN;
 
-	if (!existrecentFolder(name))
+	if (!existRecentFolder(name))
 	{
 		IN.father = recent_ptr;
 		IN.name = name;
@@ -262,9 +268,14 @@ void creatFolder(string name)
 		IN.type[1] = true;
 		IN.type[2] = false;
 		recent_ptr->children.push_back(IN);
-		string command = "mkdir " + name;
-		system(command.data());
-		cout << "创建成功！";
+		if (mkdir(name.data()) == 0)
+		{
+			cout << "创建成功！";
+		}
+		else
+		{
+			cout << "创建失败";
+		}
 	}
 	else
 	{
@@ -350,17 +361,23 @@ void dir()
 	{
 		cout << left << setw(18) << "文件名" << left << setw(25) << "文件所有者" << left << setw(36) << "文件读写类型" << left << setw(24) << "文件地址" << left << setw(19) << "文件大小" << endl;
 		for (auto i = recent_ptr->children.begin(); i != recent_ptr->children.end(); i++)
-			cout << left << setw(15) << (*i).name << left << setw(20) << (*i).owner << left << setw(30) << (*i).printtype() << left << setw(20) << (*i).src << left << setw(15) << (*i).fileSize() << endl;
+			cout << left << setw(15) << (*i).name << left << setw(20) << (*i).owner << left << setw(30) << (*i).print_type() << left << setw(20) << (*i).src << left << setw(15) << (*i).fileSize() << endl;
 	}
 	else
 	{
 		cout << "空目录";
 	}
 }
+
+void copyFile(string filename_and_path)
+{
+	
+}
+
 //删除文件
 void deleteFile(string namein)
 {
-	if (existrecentFolder(namein))
+	if (existRecentFolder(namein))
 	{
 		for (auto i = recent_ptr->children.begin(); i != recent_ptr->children.end(); i++)
 		{
@@ -380,6 +397,7 @@ void deleteFile(string namein)
 		return;
 	}
 }
+
 // 重命名文件
 void renameFile(string option)
 {
@@ -389,7 +407,7 @@ void renameFile(string option)
         string oldName = option.substr(0, spacePos);
         string newName = option.substr(spacePos + 1);
 
-        if (existrecentFolder(oldName))
+        if (existRecentFolder(oldName))
         {
             for (auto i = recent_ptr->children.begin(); i != recent_ptr->children.end(); i++)
             {
@@ -484,6 +502,9 @@ void shell()
 			break;
 		case "exit"_hash:
 			exit();
+			break;
+		case "copy"_hash:
+			copyFile(option);
 			break;
 		default:
 			cout << "无效命令" ;
